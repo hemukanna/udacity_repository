@@ -1,3 +1,10 @@
+1)	Columns having multiple values is not a normalized form of designing a database. Example: upvotes column has multiple usernames
+2)	Two columns serve the same purpose and has same data. Example: “upvotes” and “downvotes” columns
+3)	Tables are not segregated, example “upvotes” and “downvotes” columns are included in “bad_posts” table and there could be no votes for a particular post, and this results in wastage of memory and impacts application processing.
+4)	There is no provision to verify if the user is present in DB or to delete a particular user.
+5)	Counting the number of votes for a particular post is an expensive query with this design.
+
+
 CREATE TABLE User_Table (
              User_ID SERIAL PRIMARY KEY,
              User_Name VARCHAR(25) CONSTRAINT user_name_cnstrnt UNIQUE NOT NULL,
