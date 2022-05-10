@@ -8,7 +8,7 @@
 CREATE TABLE User_Table (
              User_ID SERIAL PRIMARY KEY,
              User_Name VARCHAR(25) CONSTRAINT user_name_cnstrnt UNIQUE NOT NULL,
-	         Login_Time TIMESTAMP
+          Login_Time TIMESTAMP
 );
 
 CREATE INDEX User_Name_Index ON User_Table (User_Name);
@@ -16,40 +16,39 @@ CREATE INDEX Login_Time_Index ON User_Table (Login_Time);
 
 
 CREATE TABLE Topic_Table (
-	         Topic_ID SERIAL PRIMARY KEY,
-	         Topic_Name VARCHAR(30) CONSTRAINT topic_cnstrnt UNIQUE NOT NULL,
-	         Topic_Desc VARCHAR(500)
+          Topic_ID SERIAL PRIMARY KEY,
+          Topic_Name VARCHAR(30) CONSTRAINT topic_cnstrnt UNIQUE NOT NULL,
+          Topic_Desc VARCHAR(500)
 );
 
 CREATE INDEX Topic_Index ON Topic_Table (Topic_Name);
 
 
 CREATE TABLE Posts_Table (
-	         Post_ID SERIAL PRIMARY KEY,
-	         Topic_ID INTEGER REFERENCES Topic_Table ON DELETE CASCADE,
-	         User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
-	         Title VARCHAR(100) CONSTRAINT title_cnstrnt NOT NULL,
-	         URL_Content VARCHAR(5000) DEFAULT NULL,
-	         Post_Content TEXT DEFAULT NULL,
-			 Post_Timestamp TIMESTAMP,
-	         CONSTRAINT text_url_cnstrnt
-	         CHECK(URL_Content IS NOT NULL AND Post_Content IS NULL OR
-				   URL_Content IS NULL AND Post_Content IS NOT NULL)
+             Post_ID SERIAL PRIMARY KEY,
+             Topic_ID INTEGER REFERENCES Topic_Table ON DELETE CASCADE,
+             User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
+             Title VARCHAR(100) CONSTRAINT title_cnstrnt NOT NULL,
+             URL_Content VARCHAR(5000) DEFAULT NULL,
+             Post_Content TEXT DEFAULT NULL,
+             Post_Time_stamp TIMESTAMP,
+             CONSTRAINT text_url_cnstrnt
+             CHECK(URL_Content IS NOT NULL AND Post_Content IS NULL OR URL_Content IS NULL AND Post_Content IS NOT NULL)
 );
 
 CREATE INDEX Posts_User_Index ON Posts_Table (Topic_ID,User_ID);
-CREATE INDEX Posts_Topic_Index ON Posts_Table (Topic_ID,Post_Timestamp);
+CREATE INDEX Posts_Topic_Index ON Posts_Table (Topic_ID,Post_Time_stamp);
 
 
 
 CREATE TABLE Comments_Table (
-	         Comment_ID SERIAL PRIMARY KEY,
-	         User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
-	         Post_ID INTEGER REFERENCES Posts_Table ON DELETE CASCADE,
-	         Comment_Content TEXT CONSTRAINT comment_cnstrnt NOT NULL,
-	         Comment_Timestamp TIMESTAMP,
-			 Parent_Comment_ID INTEGER,
-			 FOREIGN KEY (Parent_Comment_ID) REFERENCES Comments_Table (Comment_ID) ON DELETE CASCADE
+          Comment_ID SERIAL PRIMARY KEY,
+          User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
+          Post_ID INTEGER REFERENCES Posts_Table ON DELETE CASCADE,
+          Comment_Content TEXT CONSTRAINT comment_cnstrnt NOT NULL,
+          Comment_Timestamp TIMESTAMP,
+    Parent_Comment_ID INTEGER,
+    FOREIGN KEY (Parent_Comment_ID) REFERENCES Comments_Table (Comment_ID) ON DELETE CASCADE
 );
 
 CREATE INDEX Comments_User_Index ON Comments_Table (User_ID,Comment_Timestamp);
@@ -58,81 +57,68 @@ CREATE INDEX Parent_comment_Index ON Comments_Table (Parent_Comment_ID);
 
 
 CREATE TABLE Votes_Table (
-	         User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
-	         Post_ID INTEGER REFERENCES Posts_Table ON DELETE CASCADE,
-	         Vote_Flag INTEGER CONSTRAINT vote_cnstrnt CHECK(Vote_Flag=1 OR Vote_Flag=-1),
-	         Vote_Timestamp TIMESTAMP,
-	         PRIMARY KEY (User_ID, Post_ID)
+          User_ID INTEGER REFERENCES User_Table ON DELETE SET NULL,
+          Post_ID INTEGER REFERENCES Posts_Table ON DELETE CASCADE,
+          Vote_Flag INTEGER CONSTRAINT vote_cnstrnt CHECK(Vote_Flag=1 OR Vote_Flag=-1),
+          Vote_Timestamp TIMESTAMP,
+          PRIMARY KEY (User_ID, Post_ID)
 );
 
 CREATE INDEX Post_Vote_Index ON Votes_Table (Vote_Flag);
 
 
 INSERT INTO User_Table (User_Name)
-	   SELECT DISTINCT username FROM bad_posts;
-
--- All users who've made only commented
-INSERT INTO User_Table (User_Name)
-	   SELECT DISTINCT a.username FROM bad_comments a
-	   LEFT JOIN User_Table b
-	   ON a.username = b.User_Name
-	   WHERE b.User_Name IS NULL;
--- All users who've only up voted
+    SELECT DISTINCT username FROM bad_posts;
 
 INSERT INTO User_Table (User_Name)
-	   sub_tbl AS (SELECT REGEXP_SPLIT_TO_TABLE(upvotes, ',') AS upvote_user FROM bad_posts)
-	   SELECT DISTINCT upvote_user FROM sub_tbl
-	   LEFT JOIN User_Table a
-	   ON sub_tbl.upvote_user = a.User_Name
-	   WHERE a.User_Name IS NULL;
--- All User_Table who've only down voted
+    SELECT DISTINCT a.username FROM bad_comments a
+    LEFT JOIN User_Table b
+    ON a.username = b.User_Name
+    WHERE b.User_Name IS NULL;
 
 INSERT INTO User_Table (User_Name)
-	   WITH sub_tbl AS (SELECT REGEXP_SPLIT_TO_TABLE(downvotes, ',')	AS downvote_user FROM bad_posts)
-	   SELECT downvote_user FROM sub_tbl
-	   LEFT JOIN User_Table a
-	   ON sub_tbl.downvote_user = a.User_Name
-	   WHERE a.User_Name IS NULL;
-----------------------------------------------------------------------------
--- Inserting data into topics database
-----------------------------------------------------------------------------
--- All topic names
+    WITH sub_tbl AS (SELECT REGEXP_SPLIT_TO_TABLE(upvotes, ',') AS upvote_user FROM bad_posts)
+    SELECT DISTINCT upvote_user FROM sub_tbl
+    LEFT JOIN User_Table a
+    ON sub_tbl.upvote_user = a.User_Name
+    WHERE a.User_Name IS NULL;
+
+INSERT INTO User_Table (User_Name)
+    WITH sub_tbl AS (SELECT REGEXP_SPLIT_TO_TABLE(downvotes, ',') AS downvote_user FROM bad_posts)
+    SELECT downvote_user FROM sub_tbl
+    LEFT JOIN User_Table a
+    ON sub_tbl.downvote_user = a.User_Name
+    WHERE a.User_Name IS NULL;
+
 INSERT INTO Topic_Table (Topic_Name)
-	   SELECT DISTINCT topic FROM bad_posts;
-----------------------------------------------------------------------------
--- Inserting data into posts database
-----------------------------------------------------------------------------
--- all post data into posts database
+    SELECT DISTINCT topic FROM bad_posts;
+
 INSERT INTO Posts_Table (Post_ID, Topic_ID, User_ID, Title, URL_Content, Post_Content)
-	   SELECT a.id, b.Topic_ID, c.User_ID, LEFT(a.title,100), a.url, a.text_content
-	   FROM bad_posts a
-	   JOIN Topic_Table b
-	   ON a.topic = b.Topic_Name
-	   JOIN User_Table c
-	   ON a.username = c.User_Name;
----------------------------------------------------------------------------
--- Inserting data into comments database
----------------------------------------------------------------------------
+    SELECT a.id, b.Topic_ID, c.User_ID, LEFT(a.title,100), a.url, a.text_content
+    FROM bad_posts a
+    JOIN Topic_Table b
+    ON a.topic = b.Topic_Name
+    JOIN User_Table c
+    ON a.username = c.User_Name;
+
 INSERT INTO Comments_Table (User_ID, Post_ID, Comment_Content)
-	SELECT c.User_ID, b.Post_ID, a.text_content
-	FROM bad_comments a
-	JOIN Posts_Table b
-	ON a.post_id = b.Post_ID
-	JOIN User_Table c
-	ON a.username = c.User_Name;
----------------------------------------------------------------------------
--- Inserting data into votes database
----------------------------------------------------------------------------
-INSERT INTO Votes_Table (User_ID, Post_ID, Vote_Flag)
-	WITH table1 AS (SELECT id, REGEXP_SPLIT_TO_TABLE(downvotes, ',') AS downvote_flag FROM bad_posts)
-	SELECT c.User_ID, table1.id, -1 AS Vote_Flag
-	FROM table1
-	JOIN User_Table c
-	ON c.User_Name = table1.downvote_flag;
+ SELECT c.User_ID, b.Post_ID, a.text_content
+ FROM bad_comments a
+ JOIN Posts_Table b
+ ON a.post_id = b.Post_ID
+ JOIN User_Table c
+ ON a.username = c.User_Name;
 
 INSERT INTO Votes_Table (User_ID, Post_ID, Vote_Flag)
-	WITH table1 AS (SELECT id, REGEXP_SPLIT_TO_TABLE(upvotes, ',') AS upvote_flag FROM bad_posts)
-	SELECT c.User_ID, table1.id, 1 AS Vote_Flag
-	FROM table1
-	JOIN User_Table c
-	ON c.User_Name = table1.upvote_flag;
+ WITH table1 AS (SELECT id, REGEXP_SPLIT_TO_TABLE(downvotes, ',') AS downvote_flag FROM bad_posts)
+ SELECT c.User_ID, table1.id, -1 AS Vote_Flag
+ FROM table1
+ JOIN User_Table c
+ ON c.User_Name = table1.downvote_flag;
+
+INSERT INTO Votes_Table (User_ID, Post_ID, Vote_Flag)
+ WITH table1 AS (SELECT id, REGEXP_SPLIT_TO_TABLE(upvotes, ',') AS upvote_flag FROM bad_posts)
+ SELECT c.User_ID, table1.id, 1 AS Vote_Flag
+ FROM table1
+ JOIN User_Table c
+ ON c.User_Name = table1.upvote_flag;
